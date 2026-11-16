@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transport Manager — Every trip. Every rupee.</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Arial,sans-serif; }
+  body { background:#f6f7fb; color:#1c2333; display:flex; min-height:100vh; }
+
+  /* Sidebar like Transport Manager app */
+  aside { width:230px; background:#131a2e; color:#aab; padding:20px 0; position:fixed; top:0; bottom:0; overflow-y:auto; }
+  aside .brand { color:#fff; font-size:19px; font-weight:bold; padding:0 20px 18px; border-bottom:1px solid #26304d; }
+  aside .brand span { color:#ff9f43; }
+  aside a { display:block; padding:11px 20px; color:#aab; text-decoration:none; font-size:14px; cursor:pointer; border-left:3px solid transparent; }
+  aside a:hover { color:#fff; }
+  aside a.active { color:#ff9f43; border-left-color:#ff9f43; background:#1a2340; }
+  aside .note { font-size:11px; color:#667; padding:14px 20px; }
+
+  main { margin-left:230px; flex:1; padding:26px 30px; }
+  h2.title { color:#131a2e; margin-bottom:16px; font-size:22px; }
+
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:15px; margin-bottom:22px; }
+  .card { background:#fff; border-radius:12px; padding:18px; box-shadow:0 1px 6px rgba(20,30,60,.07); }
+  .card h3 { font-size:12px; color:#889; text-transform:uppercase; margin-bottom:6px; }
+  .card .v { font-size:24px; font-weight:700; color:#131a2e; }
+  .card.green .v { color:#1d9e57; } .card.red .v { color:#e04848; } .card.orange .v { color:#e8890c; }
+
+  .panel { background:#fff; border-radius:12px; padding:20px; box-shadow:0 1px 6px rgba(20,30,60,.07); margin-bottom:22px; overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th { background:#f0f3fa; text-align:left; padding:10px; color:#3a4668; white-space:nowrap; }
+  td { padding:9px 10px; border-bottom:1px solid #f0f0f4; }
+  tfoot td { font-weight:700; background:#f8faff; }
+
+  form { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:11px; align-items:end; }
+  label { font-size:12px; color:#556; display:block; margin-bottom:3px; }
+  input, select { width:100%; padding:9px; border:1px solid #d5dae6; border-radius:8px; font-size:14px; }
+  button { background:#131a2e; color:#fff; border:none; padding:11px 18px; border-radius:8px; font-size:14px; cursor:pointer; white-space:nowrap; }
+  button:hover { background:#2a3860; }
+  .btn-o { background:#ff9f43; color:#131a2e; }
+  .btn-g { background:#1d9e57; } .btn-g:hover { background:#24b464; }
+  .btn-d { background:#e04848; padding:5px 10px; font-size:12px; border-radius:6px; }
+  .badge { padding:3px 9px; border-radius:20px; font-size:11.5px; font-weight:600; }
+  .b-running { background:#e3f2fd; color:#1565c0; } .b-done { background:#e8f5e9; color:#1d9e57; }
+  .b-billed { background:#ede7f6; color:#673ab7; } .b-paid { background:#e8f5e9; color:#1d9e57; }
+  .b-part { background:#fff3e0; color:#e8890c; }
+  .hint { font-size:12px; color:#98a; margin:8px 0 12px; }
+  @media (max-width:800px){ aside{position:static;width:100%;display:flex;flex-wrap:wrap;} aside a{border-left:none;} main{margin-left:0;padding:16px;} }
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="brand">🚛 Transport<span>Manager</span></div>
+  <a class="active" onclick="go('dash',this)">📊 Dashboard</a>
+  <a onclick="go('parties',this)">🏢 Parties</a>
+  <a onclick="go('trucks',this)">🚛 Trucks & Fleet</a>
+  <a onclick="go('drivers',this)">👨‍✈️ Drivers</a>
+  <a onclick="go('staff',this)">👥 Staff & Roles</a>
+  <a onclick="go('trips',this)">🧭 Trips, LR & POD</a>
+  <a onclick="go('exp',this)">⛽ Expenses</a>
+  <a onclick="go('hisab',this)">🧮 Driver Hisab</a>
+  <a onclick="go('inv',this)">🧾 Invoices</a>
+  <a onclick="go('pay',this)">💰 Payments</a>
+  <div class="note">Enter it once. It flows everywhere.<br>Trip ka freight = Invoice,<br>diesel = driver ka hisab.</div>
+</aside>
+
+<main>
+
+<!-- DASHBOARD -->
+<section id="dash" class="active">
+  <h2 class="title">📊 Dashboard — Every rupee under control</h2>
+  <div class="cards">
+    <div class="card"><h3>Trucks</h3><div class="v" id="kTrucks">0</div></div>
+    <div class="card"><h3>Trips (this month)</h3><div class="v" id="kTrips">0</div></div>
+    <div class="card green"><h3>Total Freight</h3><div class="v" id="kFreight">₹0</div></div>
+    <div class="card green"><h3>Received</h3><div class="v" id="kRec">₹0</div></div>
+    <div class="card red"><h3>Dues (baki)</h3><div class="v" id="kDue">₹0</div></div>
+  </div>
+  <div class="panel">
+    <h3 style="margin-bottom:10px;">Party-wise Hisab</h3>
+    <table><thead><tr><th>Party</th><th>Billed</th><th>Received</th><th>Pending Dues</th></tr></thead>
+    <tbody id="hisabDash"></tbody></table>
+  </div>
+</section>
+
+<!-- PARTIES -->
+<section id="parties">
+  <h2 class="title">🏢 Parties</h2>
+  <div class="panel"><form onsubmit="addParty(event)">
+    <div><label>Party Name *</label><input id="paN" required></div>
+    <div><label>Phone</label><input id="paP"></div>
+    <div><label>GSTIN</label><input id="paG"></div>
+    <div><label>Billing Address</label><input id="paA"></div>
+    <div><button>Add Party</button></div>
+  </form></div>
+  <div class="panel"><table><thead><tr><th>#</th><th>Party</th><th>Phone</th><th>GSTIN</th><th>Address</th><th></th></tr></thead><tbody id="tParty"></tbody></table></div>
+</section>
+
+<!-- TRUCKS -->
+<section id="trucks">
+  <h2 class="title">🚛 Trucks & Fleet (Own + Market)</h2>
+  <div class="panel"><form onsubmit="addTruck(event)">
+    <div><label>Truck No. *</label><input id="trN" required placeholder="MH12AB1234"></div>
+    <div><label>Type</label><select id="trT"><option>Own</option><option>Market (hired)</option></select></div>
+    <div><label>Owner / Broker (market)</label><input id="trO"></div>
+    <div><label>Hire ₹ (per trip)</label><input id="trH" type="number"></div>
+    <div><label>Insurance Expiry</label><input id="trI" type="date"></div>
+    <div><button>Add Truck</button></div>
+  </form></div>
+  <div class="panel"><table><thead><tr><th>Truck No.</th><th>Type</th><th>Owner/Hire</th><th>Insurance</th><th></th></tr></thead><tbody id="tTruck"></tbody></table>
+  <p class="hint">Market truck hire trip ke freight me se alag track hota hai.</p></div>
+</section>
+
+<!-- DRIVERS -->
+<section id="drivers">
+  <h2 class="title">👨‍✈️ Drivers</h2>
+  <div class="panel"><form onsubmit="addDriver(event)">
+    <div><label>Name *</label><input id="drN" required></div>
+    <div><label>Phone</label><input id="drP"></div>
+    <div><label>License No.</label><input id="drL"></div>
+    <div><button>Add Driver</button></div>
+  </form></div>
+  <div class="panel"><table><thead><tr><th>Name</th><th>Phone</th><th>License</th><th></th></tr></thead><tbody id="tDriver"></tbody></table></div>
+</section>
+
+<!-- STAFF -->
+<section id="staff">
+  <h2 class="title">👥 Staff & Roles</h2>
+  <div class="panel"><form onsubmit="addStaff(event)">
+    <div><label>Name *</label><input id="sfN" required></div>
+    <div><label>Role</label><select id="sfR"><option>Owner</option><option>Admin</option><option>Accountant</option><option>Dispatcher</option><option>Operator</option></select></div>
+    <div><label>Phone / Email</label><input id="sfP"></div>
+    <div><button>Add Staff</button></div>
+  </form></div>
+  <div class="panel"><table><thead><tr><th>Name</th><th>Role</th><th>Contact</th><th></th></tr></thead><tbody id="tStaff"></tbody></table>
+  <p class="hint">Real app me roles se permission control hota hai. Yahan record-keeping ke liye.</p></div>
+</section>
+
+<!-- TRIPS -->
+<section id="trips">
+  <h2 class="title">🧭 Trips, LR & POD</h2>
+  <div class="panel"><form onsubmit="addTrip(event)">
+    <div><label>Date *</label><input id="tpD" type="date" required></div>
+    <div><label>Party *</label><select id="tpParty" required></select></div>
+    <div><label>Truck *</label><select id="tpTruck" required></select></div>
+    <div><label>Driver</label><select id="tpDriver"></select></div>
+    <div><label>From</label><input id="tpF"></div>
+    <div><label>To</label><input id="tpT"></div>
+    <div><label>LR / Bilty No. *</label><input id="tpLr" required></div>
+    <div><label>Freight Type</label><select id="tpFt"><option>Fixed</option><option>Per Tonne</option></select></div>
+    <div><label>Qty (ton)</label><input id="tpQ" type="number" step="any"></div>
+    <div><label>Freight Rate ₹</label><input id="tpR" type="number" step="any" required></div>
+    <div style="display:flex;align-items:end;"><button class="btn-g">Add Trip</button></div>
+  </form></div>
+  <div class="panel"><table><thead><tr><th>Date</th><th>LR No.</th><th>Party</th><th>Truck</th><th>Driver</th><th>Route</th><th>Freight</th><th>Hire Cut</th><th>Net</th><th>Status</th><th></th></tr></thead>
+  <tbody id="tTrip"></tbody><tfoot><tr><td colspan="7" style="text-align:right;">TOTAL FREIGHT</td><td colspan="3" id="tfTrip"></td></tr></tfoot></table>
+  <p class="hint">Delivered trip → Invoices me bill banega.</p></div>
+</section>
+
+<!-- EXPENSES -->
+<section id="exp">
+  <h2 class="title">⛽ Expenses (Diesel, Toll, Bhatta…)</h2>
+  <div class="panel"><form onsubmit="addExp(event)">
+    <div><label>Date *</label><input id="exD" type="date" required></div>
+    <div><label>Trip (LR) *</label><select id="exTrip" required></select></div>
+    <div><label>Type</label><select id="exT"><option>Diesel</option><option>Toll</option><option>Bhatta</option><option>Maintenance</option><option>Other</option></select></div>
+    <div><label>Paid By</label><select id="exBy"><option>Company</option><option>Driver</option></select></div>
+    <div><label>Amount ₹ *</label><input id="exA" type="number" step="any" required></div>
+    <div><button>Add Expense</button></div>
+  </form></div>
+  <div class="panel"><table><thead><tr><th>Date</th><th>LR No.</th><th>Type</th><th>Paid By</th><th>Amount</th><th></th></tr></thead><tbody id="tExp"></tbody>
+  <tfoot><tr><td colspan="4" style="text-align:right;">TOTAL</td><td id="tfExp"></td><td></td></tr></tfoot></table></div>
+</section>
+
+<!-- DRIVER HISAB -->
+<section id="hisab">
+  <h2 class="title">🧮 Driver Hisab (Advance vs Expenses)</h2>
+  <div class="panel"><form onsubmit="addAdv(event)">
+    <div><label>Date *</label><input id="adD" type="date" required></div>
+    <div><label>Driver *</label><select id="adDr" required></select></div>
+    <div><label>Type</label><select id="adT"><option>Advance Given</option><option>Return</option></select></div>
+    <div><label>Amount ₹ *</label><input id="adA" type="number" step="any" required></div>
+    <div><button>Record</button></div>
+  </form></div>
+  <div class="panel"><table><thead><tr><th>Driver</th><th>Advances (diye)</th><th>Expenses (driver ne diye)</th><th>Settle karne hain</th><th></th></tr></thead><tbody id="tHisab"></tbody></table>
+  <p class="hint">Positive = driver ko dena hai, negative = wapas lena hai.</p></div>
+</section>
+
+<!-- INVOICES -->
+<section id="inv">
+  <h2 class="title">🧾 Invoices — delivered LRs ka bill</h2>
+  <div class="panel"><form onsubmit="makeInv(event)">
+    <div><label>Party *</label><select id="ivP" required></select></div>
+    <div><button class="btn-g">Generate Invoice (unbilled delivered LRs)</button></div>
+  </form></div>
+  <div class="panel"><table><thead><tr><th>Inv #</th><th>Date</th><th>Party</th><th>LRs</th><th>Amount</th><th>Received</th><th>Status</th></tr></thead><tbody id="tInv"></tbody></table></div>
+</section>
+
+<!-- PAYMENTS -->
+<section id="pay">
+  <h2 class="title">💰 Payments (UPI / Bank / Cash)</h2>
+  <div class="panel"><form onsubmit="addPay(event)">
+    <div><label>Date *</label><input id="pyD" type="date" required></div>
+    <div><label>Invoice *</label><select id="pyInv" required></select></div>
+    <div><label>Mode</label><select id="pyM"><option>UPI</option><option>Bank</option><option>Cash</option></select></div>
+    <div><label>Amount ₹ *</label><input id="pyA" type="number" step="any" required></div>
+    <div><button class="btn-g">Record Payment</button></div>
+  </form></div>
+  <div class="panel"><table><thead><tr><th>Date</th><th>Invoice</th><th>Party</th><th>Mode</th><th>Amount</th></tr></thead><tbody id="tPay"></tbody>
+  <tfoot><tr><td colspan="4" style="text-align:right;">TOTAL RECEIVED</td><td id="tfPay"></td></tr></tfoot></table></div>
+</section>
+
+</main>
+
+<script>
+let parties=[],trucks=[],drivers=[],staff=[],trips=[],exps=[],advs=[],invs=[],pays=[];
+const E=id=>document.getElementById(id);
+const esc=s=>(s??'').toString().replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const rs=n=>'₹'+Number(n||0).toLocaleString('en-IN',{maximumFractionDigits:0});
+function save(){localStorage.setItem('tm_data',JSON.stringify({parties,trucks,drivers,staff,trips,exps,advs,invs,pays}));}
+function go(id,el){document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));E(id).classList.add('active');
+ document.querySelectorAll('aside a').forEach(a=>a.classList.remove('active'));el.classList.add('active');}
+
+function addParty(e){e.preventDefault();parties.push({n:paN.value.trim(),p:paP.value,g:paG.value,a:paA.value});e.target.reset();save();render();}
+function delP(i){parties.splice(i,1);save();render();}
+function addTruck(e){e.preventDefault();trucks.push({n:trN.value.toUpperCase(),t:trT.value,o:trO.value,h:+trH.value||0,i:trI.value});e.target.reset();save();render();}
+function delTr(i){trucks.splice(i,1);save();render();}
+function addDriver(e){e.preventDefault();drivers.push({n:drN.value.trim(),p:drP.value,l:drL.value});e.target.reset();save();render();}
+function delDr(i){drivers.splice(i,1);save();render();}
+function addStaff(e){e.preventDefault();staff.push({n:sfN.value.trim(),r:sfR.value,p:sfP.value});e.target.reset();save();render();}
+function delS(i){staff.splice(i,1);save();render();}
+
+function freightOf(t){return t.ft==='Per Tonne'?(t.q||0)*t.r:t.r;}
+function netOf(t){const m=trucks.find(x=>x.n===t.tr);return freightOf(t)-(m&&m.t==='Market (hired)'?m.h||0:0);}
+
+function addTrip(e){e.preventDefault();
+ trips.push({d:tpD.value,p:tpParty.value,tr:tpTruck.value,dr:tpDriver.value,f:tpF.value,t:tpT.value,
+  lr:tpLr.value.trim(),ft:tpFt.value,q:+tpQ.value||0,r:+tpR.value,st:'Running'});
+ e.target.reset();tpD.valueAsDate=new Date();save();render();}
+function doneTrip(i){trips[i].st='Delivered';save();render();}
+function delTrip(i){trips.splice(i,1);save();render();}
+
+function addExp(e){e.preventDefault();exps.push({d:exD.value,lr:exTrip.value,t:exT.value,by:exBy.value,a:+exA.value});e.target.reset();exD.valueAsDate=new Date();save();render();}
+function delEx(i){exps.splice(i,1);save();render();}
+
+function addAdv(e){e.preventDefault();advs.push({d:adD.value,dr:adDr.value,t:adT.value,a:+adA.value});e.target.reset();adD.valueAsDate=new Date();save();render();}
+function delAd(i){advs.splice(i,1);save();render();}
+
+function makeInv(e){e.preventDefault();
+ const p=ivP.value;
+ const list=trips.filter(t=>t.p===p&&t.st==='Delivered'&&t.lr&&!invs.some(v=>v.lrs.includes(t.lr)));
+ if(!list.length){alert('Is party ki koi unbilled delivered trip nahi mili.');return;}
+ const amt=list.reduce((s,t)=>s+netOf(t),0);
+ invs.push({no:'INV-'+String(invs.length+1).padStart(4,'0'),d:new Date().toISOString().slice(0,10),p,lrs:list.map(t=>t.lr),amt});
+ save();render();}
+function recPayAmt(invNo){return pays.filter(x=>x.inv===invNo).reduce((s,x)=>s+x.a,0);}
+function invStatus(v){const r=recPayAmt(v.no);return r>=v.amt?'Paid':(r>0?'Partial':'Unpaid');}
+
+function addPay(e){e.preventDefault();
+ const v=invs.find(x=>x.no===pyInv.value);if(!v)return;
+ if(pyA.value>v.amt-recPayAmt(v.no)&&!confirm('Payment invoice amount se zyada hai. Phir bhi?'))return;
+ pays.push({d:pyD.value,inv:pyInv.value,p:v.p,m:pyM.value,a:+pyA.value});e.target.reset();pyD.valueAsDate=new Date();save();render();}
+
+function render(){
+ E('tpParty').innerHTML=parties.map(p=>`<option>${esc(p.n)}</option>`).join('')||'<option value="">-- party add karein --</option>';
+ E('tpTruck').innerHTML=trucks.map(t=>`<option>${esc(t.n)}</option>`).join('')||'<option value="">-- truck add karein --</option>';
+ E('tpDriver').innerHTML='<option value="">-</option>'+drivers.map(d=>`<option>${esc(d.n)}</option>`).join('');
+ E('exTrip').innerHTML=trips.map(t=>`<option>${esc(t.lr)} (${esc(t.p)})</option>`).join('')||'<option value="">-- trip add karein --</option>';
+ E('adDr').innerHTML=drivers.map(d=>`<option>${esc(d.n)}</option>`).join('')||'<option value="">-- driver add karein --</option>';
+ E('ivP').innerHTML=E('tpParty').innerHTML;
+ E('pyInv').innerHTML=invs.map(v=>`<option>${esc(v.no)} — ${esc(v.p)} (baki ${rs(v.amt-recPayAmt(v.no))})</option>`).join('')||'<option value="">-- invoice banayein --</option>';
+
+ E('tParty').innerHTML=parties.map((p,i)=>`<tr><td>${i+1}</td><td><b>${esc(p.n)}</b></td><td>${esc(p.p)}</td><td>${esc(p.g)}</td><td>${esc(p.a)}</td><td><button class="btn-d" onclick="delP(${i})">X</button></td></tr>`).join('');
+ E('tTruck').innerHTML=trucks.map((t,i)=>`<tr><td><b>${esc(t.n)}</b></td><td><span class="badge ${t.t==='Own'?'b-done':'b-part'}">${esc(t.t)}</span></td><td>${esc(t.o)||'-'} ${t.h?'('+rs(t.h)+'/trip)':''}</td><td>${esc(t.i)||'-'}</td><td><button class="btn-d" onclick="delTr(${i})">X</button></td></tr>`).join('');
+ E('tDriver').innerHTML=drivers.map((d,i)=>`<tr><td><b>${esc(d.n)}</b></td><td>${esc(d.p)}</td><td>${esc(d.l)}</td><td><button class="btn-d" onclick="delDr(${i})">X</button></td></tr>`).join('');
+ E('tStaff').innerHTML=staff.map((s,i)=>`<tr><td><b>${esc(s.n)}</b></td><td><span class="badge b-running">${esc(s.r)}</span></td><td>${esc(s.p)}</td><td><button class="btn-d" onclick="delS(${i})">X</button></td></tr>`).join('');
+
+ E('tTrip').innerHTML=trips.slice().reverse().map(t=>{const i=trips.indexOf(t);
+  return `<tr><td>${t.d}</td><td><b>${esc(t.lr)}</b></td><td>${esc(t.p)}</td><td>${esc(t.tr)}</td><td>${esc(t.dr)||'-'}</td>
+  <td>${esc(t.f)} → ${esc(t.t)}</td><td>${rs(freightOf(t))}</td><td>${netOf(t)!==freightOf(t)?rs(freightOf(t)-netOf(t)):'-'}</td><td><b>${rs(netOf(t))}</b></td>
+  <td><span class="badge ${t.st==='Delivered'?'b-done':'b-running'}">${t.st}</span></td>
+  <td>${t.st==='Running'?`<button class="btn-o" style="padding:5px 10px;font-size:12px;" onclick="doneTrip(${i})">Deliver</button>`:''} <button class="btn-d" onclick="delTrip(${i})">X</button></td></tr>`;}).join('');
+ const tf=trips.reduce((s,t)=>s+freightOf(t),0);E('tfTrip').textContent=rs(tf);
+
+ E('tExp').innerHTML=exps.slice().reverse().map(x=>{const i=exps.indexOf(x);
+  return `<tr><td>${x.d}</td><td>${esc(x.lr)}</td><td>${esc(x.t)}</td><td>${esc(x.by)}</td><td>${rs(x.a)}</td><td><button class="btn-d" onclick="delEx(${i})">X</button></td></tr>`;}).join('');
+ E('tfExp').textContent=rs(exps.reduce((s,x)=>s+x.a,0));
+
+ E('tHisab').innerHTML=drivers.map(d=>{
+  const adv=advs.filter(a=>a.dr===d.n&&a.t==='Advance Given').reduce((s,a)=>s+a.a,0)
+             -advs.filter(a=>a.dr===d.n&&a.t==='Return').reduce((s,a)=>s+a.a,0);
+  const dexp=exps.filter(x=>x.by==='Driver').reduce((s,x)=>s+x.a,0)/Math.max(1,drivers.length);
+  const net=adv-dexp;
+  return `<tr><td><b>${esc(d.n)}</b></td><td>${rs(adv)}</td><td>${rs(dexp)}</td><td><b style="color:${net>0?'#e04848':'#1d9e57'}">${rs(Math.abs(net))} ${net>0?'dena hai':'len hai'}</b></td>
+  <td><button class="btn-d" onclick="delAdByName('${esc(d.n)}')">Clear</button></td></tr>`;}).join('');
+
+ E('tInv').innerHTML=invs.map(v=>`<tr><td><b>${esc(v.no)}</b></td><td>${v.d}</td><td>${esc(v.p)}</td><td>${v.lrs.length} LRs</td><td>${rs(v.amt)}</td><td>${rs(recPayAmt(v.no))}</td>
+  <td><span class="badge ${invStatus(v)==='Paid'?'b-paid':invStatus(v)==='Partial'?'b-part':'b-running'}">${invStatus(v)}</span></td></tr>`).join('');
+
+ E('tPay').innerHTML=pays.slice().reverse().map(x=>`<tr><td>${x.d}</td><td>${esc(x.inv)}</td><td>${esc(x.p)}</td><td>${esc(x.m)}</td><td>${rs(x.a)}</td></tr>`).join('');
+ E('tfPay').textContent=rs(pays.reduce((s,x)=>s+x.a,0));
+
+ const mo=new Date().toISOString().slice(0,7);
+ E('kTrucks').textContent=trucks.length;
+ E('kTrips').textContent=trips.filter(t=>t.d.startsWith(mo)).length;
+ E('kFreight').textContent=rs(tf);
+ const billed=invs.reduce((s,v)=>s+v.amt,0), rec=pays.reduce((s,x)=>s+x.a,0);
+ E('kRec').textContent=rs(rec); E('kDue').textContent=rs(billed-rec);
+ E('hisabDash').innerHTML=parties.map(p=>{
+  const b=invs.filter(v=>v.p===p.n).reduce((s,v)=>s+v.amt,0);
+  const r=pays.filter(x=>x.p===p.n).reduce((s,x)=>s+x.a,0);
+  return `<tr><td><b>${esc(p.n)}</b></td><td>${rs(b)}</td><td>${rs(r)}</td><td style="color:${b-r>0?'#e04848':'#1d9e57'}"><b>${rs(b-r)}</b></td></tr>`;}).join('')
+  ||'<tr><td colspan="4" style="color:#99a;">Koi party nahi.</td></tr>';
+}
+function delAdByName(n){advs=advs.filter(a=>a.dr!==n);save();render();}
+
+const L=JSON.parse(localStorage.getItem('tm_data')||'{}');
+if(L.parties)parties=L.parties; if(L.trucks)trucks=L.trucks; if(L.drivers)drivers=L.drivers; if(L.staff)staff=L.staff;
+if(L.trips)trips=L.trips; if(L.exps)exps=L.exps; if(L.advs)advs=L.advs; if(L.invs)invs=L.invs; if(L.pays)pays=L.pays;
+tpD.valueAsDate=new Date(); exD.valueAsDate=new Date(); adD.valueAsDate=new Date(); pyD.valueAsDate=new Date();
+render();
+</script>
+</body>
+</html>
